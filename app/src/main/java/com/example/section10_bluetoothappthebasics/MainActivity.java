@@ -13,16 +13,21 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
     ListView devicesListView;
     TextView statusTextView;
     Button searchButton;
+    ArrayList<String> btDevicesArrayList;
+    ArrayAdapter<String> btDevicesArrayAdapter;
 
     BluetoothAdapter bluetoothAdapter; // robimy bt adapter
 
@@ -34,15 +39,24 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("ACTION\n" + action); // on nam wydrukuje akcje które się wydarzą, oczywiście te które daliśmy w addAction
 
             if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) { // jeśli skończono wyszukiwanie to enabluj button search
+//                devicesListView.setAdapter(btDevicesArrayAdapter);
                 statusTextView.setText("Searching finished");
                 searchButton.setEnabled(true);
+
             } else if (BluetoothDevice.ACTION_FOUND.equals(action)) { // onReceive jest w trakcie szukania cały czas. Jeśli znajdzie device to...
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE); // robimy BluetoothDevice i możemy już wyciągać jakieś info o danym urządzeniu
                 assert device != null;
                 String name = device.getName(); // pobieramy name
                 String address = device.getAddress(); // adres
                 String rssi = String.valueOf(intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)); // ale rssi już inaczej. z intentu
-                System.out.println("NAME: " + name + "     ADDRESS: " + address + "     RSSI: " + rssi);
+                if (name == null) {
+                    System.out.println("ADDRESS: " + address + "     RSSI: " + rssi);
+                    btDevicesArrayList.add("DEVICE: "+address+"   RSSI: "+rssi);
+                } else {
+                    System.out.println("NAME: " + name + "     RSSI: " + rssi);
+                    btDevicesArrayList.add("DEVICE: "+name+"   RSSI: "+rssi);
+                }
+                devicesListView.setAdapter(btDevicesArrayAdapter);
             }
 
         }
@@ -50,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     public void search(View view) {
+        btDevicesArrayAdapter.clear();
         if (bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth not supported!", Toast.LENGTH_SHORT).show();
         } else if (!bluetoothAdapter.isEnabled()) {
@@ -75,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
         devicesListView = findViewById(R.id.devicesListView);
         statusTextView = findViewById(R.id.statusTextView);
         searchButton = findViewById(R.id.searchButton);
+        btDevicesArrayList = new ArrayList<>();
+        btDevicesArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, btDevicesArrayList);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter(); // ustawiamy bt adapter
         IntentFilter intentFilter = new IntentFilter(); // bluetooth pluje dużo rzeczy więc robimy intentfilter żeby określić co nas interesuje. Różne akcje mamy poniżej
